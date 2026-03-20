@@ -122,6 +122,10 @@ export default function HeroSection() {
               </div>
             ))}
           </div>
+
+          {/* Bottom fade */}
+          <div className="hero-bottom-fade" />
+          
         </section>
       </div>
     </>
