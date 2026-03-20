@@ -128,8 +128,6 @@ const TOOLS = [
 export default function ToolsGrid() {
    return (
       <div className="tg-root">
-         {/* Bottom fade */}
-         <div className="hero-bottom-fade" />
          <div className="tg-header">
             <div>
                <div className="tg-eyebrow">Platform Tools</div>

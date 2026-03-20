@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
 
 .tg-root {
   --accent: #C8F135;
@@ -206,16 +206,7 @@
   }
 }
 
-.hero-bottom-fade {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: linear-gradient(to bottom, transparent 0%, var(--bg) 100%);
-  pointer-events: none;
-  z-index: 3;
-}
+
 
 .tg-card:nth-child(1) { animation-delay: 0.00s; }
 .tg-card:nth-child(2) { animation-delay: 0.05s; }
