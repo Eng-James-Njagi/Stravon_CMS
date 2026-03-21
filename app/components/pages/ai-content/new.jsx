@@ -31,6 +31,19 @@ const SendIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+    <path d="M2 10V2h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const MODELS = [
   { id: 'claude',  name: 'Claude',  sub: 'Anthropic · Balanced' },
   { id: 'gpt',     name: 'OpenAI',  sub: 'GPT · High quality' },
@@ -130,15 +143,16 @@ function PanelContent({ topic, model, setModel, platform, setPlatform, output })
 }
 
 export default function NewPost() {
-  const [topic,       setTopic]       = useState('');
-  const [description, setDescription] = useState('');
-  const [output,      setOutput]      = useState('');
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState('');
-  const [model,       setModel]       = useState('claude');
-  const [platform,    setPlatform]    = useState('');
-  const [image,       setImage]       = useState(null);
+  const [topic,        setTopic]        = useState('');
+  const [description,  setDescription]  = useState('');
+  const [output,       setOutput]       = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
+  const [model,        setModel]        = useState('mistral');
+  const [platform,     setPlatform]     = useState('');
+  const [image,        setImage]        = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [copied,       setCopied]       = useState(false);
   const fileInputRef = useRef(null);
 
   const isDirty = topic.trim() !== '' || description.trim() !== '';
@@ -148,10 +162,11 @@ export default function NewPost() {
     setDescription('');
     setOutput('');
     setError('');
-    setModel('claude');
+    setModel('mistral');
     setPlatform('');
     setImage(null);
     setImagePreview(null);
+    setCopied(false);
   };
 
   const handleImageChange = (e) => {
@@ -172,12 +187,21 @@ export default function NewPost() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleCopy = async () => {
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    toast.success('Copied to clipboard.');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleGenerate = async () => {
     if (!topic.trim()) return;
 
     setLoading(true);
     setError('');
     setOutput('');
+    setCopied(false);
 
     try {
       const response = await fetch('/api/generate-post', {
@@ -313,7 +337,19 @@ export default function NewPost() {
 
               {/* Generated post */}
               <div className="np-post-card">
-                <span className="np-post-card-label">Post</span>
+                <div className="np-post-card-header">
+                  <span className="np-post-card-label">Post</span>
+                  {!loading && output && (
+                    <button
+                      className={`np-copy-btn ${copied ? 'copied' : ''}`}
+                      onClick={handleCopy}
+                      title="Copy to clipboard"
+                    >
+                      {copied ? <CheckIcon /> : <CopyIcon />}
+                    </button>
+                  )}
+                </div>
+
                 {loading ? (
                   <div className="np-skeleton">
                     {[1, 2, 3, 4, 5].map((i) => (
