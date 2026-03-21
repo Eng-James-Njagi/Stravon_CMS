@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import './newPost.css';
 import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -18,18 +18,23 @@ const SparkIcon = () => (
   </svg>
 );
 
-const ImageIcon = () => (
-  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-    <rect x="3" y="5" width="22" height="18" rx="3" stroke="currentColor" strokeWidth="1.5" />
-    <circle cx="9.5" cy="11" r="2" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M3 19l6-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+const UploadIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3 16v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
+const SendIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+    <path d="M12 7H2M12 7L8 3M12 7L8 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const MODELS = [
-  { id: 'claude',  name: 'Claude',   sub: 'Anthropic · Balanced' },
-  { id: 'gpt',     name: 'OpenAI',   sub: 'GPT · High quality' },
-  { id: 'mistral', name: 'Mistral',  sub: 'Mistral · Fast & open' },
+  { id: 'claude',  name: 'Claude',  sub: 'Anthropic · Balanced' },
+  { id: 'gpt',     name: 'OpenAI',  sub: 'GPT · High quality' },
+  { id: 'mistral', name: 'Mistral', sub: 'Mistral · Fast & open' },
 ];
 
 const PLATFORMS = [
@@ -62,7 +67,6 @@ function PanelContent({ topic, model, setModel, platform, setPlatform, output })
 
   return (
     <>
-      {/* Model */}
       <div className="np-panel-section">
         <div className="np-panel-label">Model</div>
         <div className="np-model-list">
@@ -84,7 +88,6 @@ function PanelContent({ topic, model, setModel, platform, setPlatform, output })
         </div>
       </div>
 
-      {/* Platform */}
       <div className="np-panel-section">
         <div className="np-panel-label">Platform</div>
         <div className="np-platform-grid">
@@ -101,7 +104,6 @@ function PanelContent({ topic, model, setModel, platform, setPlatform, output })
         </div>
       </div>
 
-      {/* Progress */}
       <div className="np-panel-section">
         <div className="np-panel-label">Progress</div>
         <div className="np-progress-wrap">
@@ -135,6 +137,9 @@ export default function NewPost() {
   const [error,       setError]       = useState('');
   const [model,       setModel]       = useState('claude');
   const [platform,    setPlatform]    = useState('');
+  const [image,       setImage]       = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const isDirty = topic.trim() !== '' || description.trim() !== '';
 
@@ -145,6 +150,26 @@ export default function NewPost() {
     setError('');
     setModel('claude');
     setPlatform('');
+    setImage(null);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveImage = (e) => {
+    e.stopPropagation();
+    setImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleGenerate = async () => {
@@ -155,7 +180,7 @@ export default function NewPost() {
     setOutput('');
 
     try {
-      const response = await fetch('', { // ← attach your endpoint here
+      const response = await fetch('/api/generate-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, description, model, platform }),
@@ -183,16 +208,19 @@ export default function NewPost() {
     }
   };
 
+  const handlePost = () => {
+    // wire up your posting logic here
+    toast.success(`Post sent to ${platform || 'platform'}.`);
+  };
+
   return (
     <div className="np-root">
-      {/* ── LEFT COLUMN ── */}
       <div className="np-left">
         <div className="np-header">
           <div className="np-eyebrow">AI Content Studio</div>
           <div className="np-title">New Post</div>
         </div>
 
-        {/* Inline panel — mobile only */}
         <div className="np-panel-inline">
           <PanelContent
             topic={topic}
@@ -256,11 +284,34 @@ export default function NewPost() {
             </div>
 
             <div className="np-output-body">
-              <div className="np-image-placeholder">
-                <ImageIcon />
-                <span>Image Placeholder</span>
+
+              {/* Image upload */}
+              <div
+                className={`np-image-upload ${imagePreview ? 'has-image' : ''}`}
+                onClick={handleImageClick}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="np-image-input"
+                  onChange={handleImageChange}
+                />
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="Post" className="np-image-preview" />
+                    <button className="np-image-remove" onClick={handleRemoveImage}>✕</button>
+                  </>
+                ) : (
+                  <div className="np-image-empty">
+                    <UploadIcon />
+                    <span>Add Image</span>
+                    <span className="np-image-hint">Click to upload</span>
+                  </div>
+                )}
               </div>
 
+              {/* Generated post */}
               <div className="np-post-card">
                 <span className="np-post-card-label">Post</span>
                 {loading ? (
@@ -270,7 +321,21 @@ export default function NewPost() {
                     ))}
                   </div>
                 ) : (
-                  <p className="np-post-card-text">{output}</p>
+                  <>
+                    <p className="np-post-card-text">{output}</p>
+                    {output && (
+                      <div className="np-post-actions">
+                        <button
+                          className="np-btn-post"
+                          onClick={handlePost}
+                          disabled={!platform}
+                        >
+                          <SendIcon />
+                          {platform ? `Post to ${platform}` : 'Select a platform'}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -278,7 +343,6 @@ export default function NewPost() {
         )}
       </div>
 
-      {/* ── RIGHT PANEL (desktop only) ── */}
       <aside className="np-panel">
         <PanelContent
           topic={topic}
