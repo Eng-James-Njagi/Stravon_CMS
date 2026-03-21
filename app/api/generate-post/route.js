@@ -1,9 +1,12 @@
 const MISTRAL = 'mistral';
 const CHATGPT = 'gpt';
-const CLAUDE = 'claude';
+const CLAUDE  = 'claude';
 
 async function fetchTavilyResults(query) {
   try {
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: {
@@ -18,7 +21,10 @@ async function fetchTavilyResults(query) {
         max_results: 5,
         topic: 'news',
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) return null;
 
@@ -26,13 +32,11 @@ async function fetchTavilyResults(query) {
 
     const parts = [];
 
-    // include tavily's own summary answer if available
     if (data?.answer) {
       parts.push(`Summary: ${data.answer}`);
       parts.push('');
     }
 
-    // include top result snippets
     const results = data?.results ?? [];
     results.slice(0, 5).forEach((r, i) => {
       parts.push(`${i + 1}. ${r.title}`);
@@ -40,7 +44,12 @@ async function fetchTavilyResults(query) {
     });
 
     return parts.length > 0 ? parts.join('\n') : null;
-  } catch {
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.warn('[Tavily] Request timed out after 10s — skipping web context.');
+    } else {
+      console.error('[Tavily] Fetch error:', err.message);
+    }
     return null;
   }
 }
@@ -93,6 +102,9 @@ export async function POST(req) {
         .join('\n');
 
       // Step 3 — send to Mistral agent
+      const mistralController = new AbortController();
+      const mistralTimeoutId  = setTimeout(() => mistralController.abort(), 30000);
+
       const response = await fetch('https://api.mistral.ai/v1/agents/completions', {
         method: 'POST',
         headers: {
@@ -101,9 +113,12 @@ export async function POST(req) {
         },
         body: JSON.stringify({
           agent_id: agentId,
-          messages: [ { role: 'user', content: prompt } ],
+          messages: [{ role: 'user', content: prompt }],
         }),
+        signal: mistralController.signal,
       });
+
+      clearTimeout(mistralTimeoutId);
 
       const data = await response.json();
 
@@ -111,13 +126,13 @@ export async function POST(req) {
         throw new Error(data?.message || 'Mistral API error.');
       }
 
-      const raw = data?.choices?.[ 0 ]?.message?.content;
+      const raw  = data?.choices?.[0]?.message?.content;
       const text = Array.isArray(raw)
         ? raw.map((b) => b.text ?? b.content ?? '').join('')
         : raw ?? '';
 
       return Response.json({
-        content: [ { type: 'text', text } ],
+        content: [{ type: 'text', text }],
       });
 
     } else if (model === CHATGPT) {
@@ -140,6 +155,12 @@ export async function POST(req) {
     }
 
   } catch (err) {
+    if (err.name === 'AbortError') {
+      return Response.json(
+        { error: { message: 'Mistral request timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
     return Response.json(
       { error: { message: err.message || 'Internal server error.' } },
       { status: 500 }
