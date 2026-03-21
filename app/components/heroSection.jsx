@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from "react";
-import Image from 'next/image'
+import Link from 'next/link'
 import '../components/css/heroSection.css'
 
 export default function HeroSection() {
@@ -24,25 +24,8 @@ export default function HeroSection() {
   return (
     <>
       <div className="hero-root">
-        <nav className="nav">
-          <a className="nav-logo" href="#">
-            <Image src="/logo.jpg"
-              alt="Logo"
-              width={30}
-              height={30}
-              className="nav-logo-badge"
-            />
-            <span className="nav-brand">Stravon Tech Labs</span>
-          </a>
-          <button className="nav-btn">Log In</button>
-        </nav>
-
-        {/* HERO */}
         <section className="hero-wrapper" ref={heroRef}>
-          {/* Grid */}
           <div className="grid-bg" />
-
-          {/* Blobs — react to mouse */}
           <div className="blob-wrap">
             <div
               className="blob blob-1"
@@ -89,7 +72,9 @@ export default function HeroSection() {
                 Sign In
                 <span className="cta-primary-arrow">→</span>
               </button>
-              <button className="cta-secondary">Explore Tools</button>
+              <Link href="/#ai-content">
+                <button className="cta-secondary">Explore Tools</button>
+              </Link>
             </div>
           </div>
 
@@ -125,7 +110,7 @@ export default function HeroSection() {
 
           {/* Bottom fade */}
           <div className="hero-bottom-fade" />
-          
+
         </section>
       </div>
     </>

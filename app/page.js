@@ -1,10 +1,12 @@
 import HeroSection from './components/heroSection'
 import Tools from './components/tools'
-export default function Page(){
-  return(
+export default function Page() {
+  return (
     <>
-    <HeroSection/>
-    <Tools/>
+      <HeroSection />
+      <section id="ai-content">
+        <Tools />
+      </section>
     </>
   )
 }

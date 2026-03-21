@@ -1,5 +1,6 @@
 import { Oswald, Open_Sans } from "next/font/google";
 import "./globals.css";
+import Navbar from './components/nav'
 
 
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${oswald.variable} ${open_sans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        <Navbar/>
         <main>
            {children}
         </main>
