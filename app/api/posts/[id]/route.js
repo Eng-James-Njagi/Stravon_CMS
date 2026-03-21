@@ -1,15 +1,5 @@
-import { MongoClient, ObjectId } from 'mongodb';
-
-let client;
-let clientPromise;
-
-function getClient() {
-  if (!clientPromise) {
-    client = new MongoClient(process.env.mongo_db_url);
-    clientPromise = client.connect();
-  }
-  return clientPromise;
-}
+import { ObjectId } from 'mongodb';
+import { getDb } from '../../../lib/mongodb';
 
 export async function DELETE(req, { params }) {
   try {
@@ -19,8 +9,7 @@ export async function DELETE(req, { params }) {
       return Response.json({ error: { message: 'Post ID is required.' } }, { status: 400 });
     }
 
-    await getClient();
-    const db     = client.db();
+    const db     = await getDb();
     const result = await db
       .collection('posts')
       .deleteOne({ _id: new ObjectId(id) });

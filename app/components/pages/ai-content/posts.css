@@ -396,3 +396,71 @@
     width: 100%;
   }
 }
+
+/* ── PLATFORM BADGES ── */
+.pp-card-platforms {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 24px 14px;
+}
+
+.pp-card.expanded .pp-card-platforms {
+  padding-bottom: 0;
+  margin-bottom: 16px;
+}
+
+.pp-platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--fg);
+  color: var(--accent);
+  font-family: var(--font-open_sans), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: capitalize;
+  padding: 3px 9px;
+  border-radius: 100px;
+}
+
+.pp-platform-badge-icon {
+  width: 10px !important;
+  height: 10px !important;
+  color: var(--accent);
+}
+
+.pp-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pp-copy-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(15, 14, 10, 0.1);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.pp-copy-btn:hover {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--accent);
+}
+
+.pp-copy-btn.copied {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--fg);
+}

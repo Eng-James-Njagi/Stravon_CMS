@@ -1,25 +1,56 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faXTwitter,
+  faLinkedin,
+  faInstagram,
+  faFacebook,
+  faThreads,
+} from '@fortawesome/free-brands-svg-icons';
+import { faBlog } from '@fortawesome/free-solid-svg-icons';
 import './posts.css';
 
 const PER_PAGE = 8;
 
+const PLATFORM_ICONS = {
+  twitter:   faXTwitter,
+  linkedin:  faLinkedin,
+  instagram: faInstagram,
+  facebook:  faFacebook,
+  blog:      faBlog,
+  threads:   faThreads,
+};
+
 const ChevronIcon = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-    <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const ReferenceIcon = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <path d="M2 6.5h9M7.5 3l3.5 3.5L7.5 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2 6.5h9M7.5 3l3.5 3.5L7.5 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const TrashIcon = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-    <path d="M2 3.5h9M5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M10.5 3.5l-.7 7a1 1 0 01-1 .9H4.2a1 1 0 01-1-.9l-.7-7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2 3.5h9M5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M10.5 3.5l-.7 7a1 1 0 01-1 .9H4.2a1 1 0 01-1-.9l-.7-7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+    <path d="M1.5 9V1.5h7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <path d="M2 6.5l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -30,11 +61,41 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function PlatformBadge({ id }) {
+  const icon = PLATFORM_ICONS[id];
+  if (!icon) return (
+    <span className="pp-platform-badge pp-platform-badge-text">{id}</span>
+  );
+  return (
+    <span className="pp-platform-badge">
+      <FontAwesomeIcon icon={icon} className="pp-platform-badge-icon" />
+      <span>{id}</span>
+    </span>
+  );
+}
+
 function PostCard({ post, onDelete, onReference }) {
   const [expanded, setExpanded] = useState(false);
+  const [copied,   setCopied]   = useState(false);
 
-  const text     = post.post ?? post.content ?? '';
-  const isLong   = text.length > 180;
+  const text      = post.post ?? post.content ?? '';
+  const platforms = Array.isArray(post.platforms)
+    ? post.platforms
+    : post.platform
+    ? [post.platform]
+    : [];
+
+  const handleCopy = async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success('Copied to clipboard.');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy.');
+    }
+  };
 
   return (
     <div className={`pp-card ${expanded ? 'expanded' : ''}`}>
@@ -44,19 +105,35 @@ function PostCard({ post, onDelete, onReference }) {
         <div className="pp-card-left">
           <div className="pp-card-meta">
             <span className="pp-card-date">{formatDate(post.date ?? post.createdAt)}</span>
-            {post.platform && (
-              <span className="pp-card-platform">{post.platform}</span>
-            )}
           </div>
           <div className="pp-card-topic">{post.topic ?? 'Untitled'}</div>
           {!expanded && (
             <p className="pp-card-preview">{text}</p>
           )}
         </div>
-        <div className="pp-card-chevron">
-          <ChevronIcon />
+
+        <div className="pp-card-header-right">
+          <button
+            className={`pp-copy-btn ${copied ? 'copied' : ''}`}
+            onClick={handleCopy}
+            title="Copy post"
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </button>
+          <div className="pp-card-chevron">
+            <ChevronIcon />
+          </div>
         </div>
       </div>
+
+      {/* Platform badges — always visible at bottom */}
+      {platforms.length > 0 && (
+        <div className="pp-card-platforms">
+          {platforms.map((p) => (
+            <PlatformBadge key={p} id={p} />
+          ))}
+        </div>
+      )}
 
       {/* Expanded body */}
       {expanded && (
@@ -87,7 +164,6 @@ function PostCard({ post, onDelete, onReference }) {
 function Pagination({ current, total, onChange }) {
   const pages = Array.from({ length: total }, (_, i) => i + 1);
 
-  // show max 5 page buttons around current
   const getVisible = () => {
     if (total <= 7) return pages;
     const start = Math.max(1, current - 2);
@@ -150,9 +226,7 @@ export default function Posts() {
     try {
       const res  = await fetch('/api/posts');
       const data = await res.json();
-
       if (!res.ok) throw new Error(data?.error?.message || 'Failed to fetch posts.');
-
       setPosts(data.posts ?? data ?? []);
     } catch (err) {
       setError(err.message);
@@ -173,12 +247,11 @@ export default function Posts() {
   };
 
   const handleReference = (post) => {
-    // wire up AI reference logic here
     toast.success(`"${post.topic}" marked as reference.`);
   };
 
-  const totalPages  = Math.ceil(posts.length / PER_PAGE);
-  const paginated   = posts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = Math.ceil(posts.length / PER_PAGE);
+  const paginated  = posts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const handlePageChange = (p) => {
     setPage(p);
@@ -188,7 +261,6 @@ export default function Posts() {
   return (
     <div className="pp-root">
 
-      {/* Header */}
       <div className="pp-header">
         <div className="pp-header-left">
           <div className="pp-eyebrow">AI Content Studio</div>
@@ -201,12 +273,10 @@ export default function Posts() {
         )}
       </div>
 
-      {/* Top pagination */}
       {!loading && !error && totalPages > 1 && (
         <Pagination current={page} total={totalPages} onChange={handlePageChange} />
       )}
 
-      {/* Loading skeleton */}
       {loading && (
         <div className="pp-loading" style={{ marginTop: 24 }}>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -215,12 +285,10 @@ export default function Posts() {
         </div>
       )}
 
-      {/* Error */}
       {!loading && error && (
         <div className="pp-error">{error}</div>
       )}
 
-      {/* Empty */}
       {!loading && !error && posts.length === 0 && (
         <div className="pp-empty">
           <div className="pp-empty-icon">📭</div>
@@ -229,7 +297,6 @@ export default function Posts() {
         </div>
       )}
 
-      {/* Cards */}
       {!loading && !error && paginated.length > 0 && (
         <div className="pp-list" style={{ marginTop: totalPages > 1 ? 24 : 8 }}>
           {paginated.map((post, i) => (
@@ -244,7 +311,6 @@ export default function Posts() {
         </div>
       )}
 
-      {/* Bottom pagination */}
       {!loading && !error && totalPages > 1 && (
         <Pagination current={page} total={totalPages} onChange={handlePageChange} />
       )}

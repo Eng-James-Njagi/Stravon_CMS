@@ -1,25 +1,39 @@
-import { MongoClient } from 'mongodb';
-
-let client;
-let clientPromise;
-
-function getClient() {
-  if (!clientPromise) {
-    client = new MongoClient(process.env.mongo_db_url);
-    clientPromise = client.connect();
-  }
-  return clientPromise;
-}
+import { getDb } from '../../../lib/mongodb';
 
 // ── Stub platform handlers ──
-// Wire up real OAuth / SDK calls here when ready
+async function postToTwitter()   { return { platform: 'twitter',   success: true }; }
+async function postToLinkedin()  { return { platform: 'linkedin',  success: true }; }
+async function postToInstagram() { return { platform: 'instagram', success: true }; }
+async function postToFacebook({ post }) {
+  const pageId    = process.env.FACEBOOK_PAGE_ID;
+  const pageToken = process.env.FACEBOOK_PAGE_TOKEN;
 
-async function postToTwitter(post)   { return { platform: 'twitter',   success: true }; }
-async function postToLinkedin(post)  { return { platform: 'linkedin',  success: true }; }
-async function postToInstagram(post) { return { platform: 'instagram', success: true }; }
-async function postToFacebook(post)  { return { platform: 'facebook',  success: true }; }
-async function postToBlog(post)      { return { platform: 'blog',      success: true }; }
-async function postToThreads(post)   { return { platform: 'threads',   success: true }; }
+  if (!pageId || !pageToken) {
+    return { platform: 'facebook', success: false, error: 'Facebook credentials not configured.' };
+  }
+
+  const response = await fetch(
+    `https://graph.facebook.com/v19.0/${pageId}/feed`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message:      post,
+        access_token: pageToken,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || data.error) {
+    throw new Error(data?.error?.message || 'Facebook post failed.');
+  }
+
+  return { platform: 'facebook', success: true, postId: data.id };
+}
+async function postToBlog()      { return { platform: 'blog',      success: true }; }
+async function postToThreads()   { return { platform: 'threads',   success: true }; }
 
 const PLATFORM_HANDLERS = {
   twitter:   postToTwitter,
@@ -42,7 +56,7 @@ export async function POST(req) {
       return Response.json({ error: { message: 'At least one platform is required.' } }, { status: 400 });
     }
 
-    // Step 1 — call each platform stub
+    // Step 1 — call each platform handler
     const platformResults = await Promise.allSettled(
       platforms.map((p) => {
         const handler = PLATFORM_HANDLERS[p];
@@ -56,9 +70,8 @@ export async function POST(req) {
       r.status === 'fulfilled' ? r.value : { success: false, error: r.reason?.message }
     );
 
-    // Step 2 — save to MongoDB (no image)
-    await getClient();
-    const db = client.db('stravon_cms');
+    // Step 2 — save to MongoDB
+    const db = await getDb();
 
     await db.collection('posts').insertOne({
       topic:       topic ?? '',

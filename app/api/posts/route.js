@@ -1,27 +1,14 @@
-import { MongoClient } from 'mongodb';
-
-let client;
-let clientPromise;
-
-function getClient() {
-  if (!clientPromise) {
-    client = new MongoClient(process.env.mongo_db_url);
-    clientPromise = client.connect();
-  }
-  return clientPromise;
-}
+import { getDb } from '../../lib/mongodb';
 
 export async function GET() {
   try {
-    await getClient();
-    const db = client.db('stravon_cms');
+    const db    = await getDb();
     const posts = await db
       .collection('posts')
       .find({})
       .sort({ createdAt: -1 })
       .toArray();
 
-    // convert _id ObjectId to string for serialization
     const serialized = posts.map((p) => ({
       ...p,
       _id: p._id.toString(),
