@@ -14,7 +14,7 @@ function getClient() {
 export async function GET() {
   try {
     await getClient();
-    const db    = client.db();
+    const db = client.db('stravon_cms');
     const posts = await db
       .collection('posts')
       .find({})
