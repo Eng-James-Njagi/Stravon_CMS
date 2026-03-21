@@ -10,8 +10,15 @@
 }
 
 @keyframes npFadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── LEFT COLUMN ── */
@@ -63,7 +70,7 @@
   padding: 10px 12px;
   border-radius: 8px;
   border: 1.5px solid rgba(15, 14, 10, 0.1);
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   font-family: var(--font-open_sans), sans-serif;
@@ -71,7 +78,7 @@
 
 .np-model-option:hover {
   border-color: rgba(15, 14, 10, 0.22);
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .np-model-option.selected {
@@ -137,7 +144,7 @@
   padding: 10px 8px;
   border-radius: 8px;
   border: 1.5px solid rgba(15, 14, 10, 0.1);
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-family: var(--font-open_sans), sans-serif;
   font-size: 11px;
@@ -147,8 +154,8 @@
 }
 
 .np-platform-btn:hover {
-  border-color: rgba(15,14,10,0.22);
-  background: rgba(255,255,255,0.8);
+  border-color: rgba(15, 14, 10, 0.22);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .np-platform-btn.selected {
@@ -187,7 +194,7 @@
   gap: 10px;
   font-family: var(--font-open_sans), sans-serif;
   font-size: 11px;
-  color: rgba(15,14,10,0.35);
+  color: rgba(15, 14, 10, 0.35);
   transition: color 0.2s;
 }
 
@@ -197,14 +204,14 @@
 }
 
 .np-progress-step.done {
-  color: rgba(15,14,10,0.5);
+  color: rgba(15, 14, 10, 0.5);
 }
 
 .np-progress-dot {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid rgba(15,14,10,0.15);
+  border: 2px solid rgba(15, 14, 10, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -212,7 +219,7 @@
   flex-shrink: 0;
   transition: background 0.2s, border-color 0.2s;
   font-weight: 700;
-  color: rgba(15,14,10,0.3);
+  color: rgba(15, 14, 10, 0.3);
 }
 
 .np-progress-step.active .np-progress-dot {
@@ -229,7 +236,7 @@
 
 .np-progress-bar-track {
   height: 4px;
-  background: rgba(15,14,10,0.08);
+  background: rgba(15, 14, 10, 0.08);
   border-radius: 2px;
   overflow: hidden;
   margin-top: 4px;
@@ -239,7 +246,7 @@
   height: 100%;
   background: var(--accent);
   border-radius: 2px;
-  transition: width 0.4s cubic-bezier(0.23,1,0.32,1);
+  transition: width 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* ── HEADER ── */
@@ -379,7 +386,9 @@
 }
 
 @keyframes npSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .np-btn-discard {
@@ -403,8 +412,15 @@
 }
 
 @keyframes npFadeIn {
-  from { opacity: 0; transform: translateX(-6px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* ── OUTPUT ── */
@@ -499,7 +515,7 @@
 .np-image-preview {
   width: 100%;
   height: 100%;
-  object-fit:contain;
+  object-fit: contain;
   display: block;
 }
 
@@ -637,25 +653,43 @@
 .np-skeleton-line {
   height: 14px;
   background: linear-gradient(90deg,
-    rgba(15,14,10,0.06) 0%,
-    rgba(15,14,10,0.12) 50%,
-    rgba(15,14,10,0.06) 100%
-  );
+      rgba(15, 14, 10, 0.06) 0%,
+      rgba(15, 14, 10, 0.12) 50%,
+      rgba(15, 14, 10, 0.06) 100%);
   background-size: 200% 100%;
   border-radius: 4px;
   animation: npShimmer 1.4s ease infinite;
 }
 
 @keyframes npShimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
-.np-skeleton-line:nth-child(1) { width: 100%; }
-.np-skeleton-line:nth-child(2) { width: 88%; }
-.np-skeleton-line:nth-child(3) { width: 94%; }
-.np-skeleton-line:nth-child(4) { width: 76%; }
-.np-skeleton-line:nth-child(5) { width: 60%; }
+.np-skeleton-line:nth-child(1) {
+  width: 100%;
+}
+
+.np-skeleton-line:nth-child(2) {
+  width: 88%;
+}
+
+.np-skeleton-line:nth-child(3) {
+  width: 94%;
+}
+
+.np-skeleton-line:nth-child(4) {
+  width: 76%;
+}
+
+.np-skeleton-line:nth-child(5) {
+  width: 60%;
+}
 
 /* ── ERROR ── */
 .np-error {
@@ -674,8 +708,8 @@
   display: none;
   margin-bottom: 32px;
   padding: 24px;
-  background: rgba(255,255,255,0.5);
-  border: 1px solid rgba(15,14,10,0.08);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(15, 14, 10, 0.08);
   border-radius: 12px;
   gap: 28px;
   flex-direction: column;
@@ -718,6 +752,11 @@
 @media (max-width: 480px) {
   .np-left {
     padding: 20px 16px 80px;
+  }
+
+  .np-input,
+  .np-textarea {
+    width: 90%;
   }
 
   .np-actions {
