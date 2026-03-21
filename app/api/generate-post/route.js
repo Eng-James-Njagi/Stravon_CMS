@@ -95,7 +95,7 @@ export async function POST(req) {
         `- Tailor the tone, length, and format for ${platform ? platform : 'the platform'}`,
         `- Start with a strong opening line`,
         `- Make it engaging and informative`,
-        `- Keep the post under 200 words`,
+        `- Keep the post under 100 words`,
         `- Output only the post content — no preamble, no source citations, no meta-commentary`,
       ]
         .filter((line) => line !== null)

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef } from 'react';
 import './newPost.css';
+import Image from 'next/image'
 import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -11,6 +12,7 @@ import {
   faThreads,
 } from '@fortawesome/free-brands-svg-icons';
 import { faBlog } from '@fortawesome/free-solid-svg-icons';
+import PostPopover from './postPopover';
 
 const SparkIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -20,27 +22,27 @@ const SparkIcon = () => (
 
 const UploadIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3 16v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M3 16v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
 
 const SendIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M12 7H2M12 7L8 3M12 7L8 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 7H2M12 7L8 3M12 7L8 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const CopyIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-    <path d="M2 10V2h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+    <path d="M2 10V2h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const CheckIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -153,6 +155,7 @@ export default function NewPost() {
   const [image,        setImage]        = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [copied,       setCopied]       = useState(false);
+  const [popoverOpen,  setPopoverOpen]  = useState(false);
   const fileInputRef = useRef(null);
 
   const isDirty = topic.trim() !== '' || description.trim() !== '';
@@ -176,9 +179,7 @@ export default function NewPost() {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleImageClick = () => fileInputRef.current?.click();
 
   const handleRemoveImage = (e) => {
     e.stopPropagation();
@@ -189,15 +190,18 @@ export default function NewPost() {
 
   const handleCopy = async () => {
     if (!output) return;
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    toast.success('Copied to clipboard.');
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      toast.success('Copied to clipboard.');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy to clipboard.');
+    }
   };
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
-
     setLoading(true);
     setError('');
     setOutput('');
@@ -211,10 +215,7 @@ export default function NewPost() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error?.message || 'Failed to generate post.');
-      }
+      if (!response.ok) throw new Error(data?.error?.message || 'Failed to generate post.');
 
       const text = data.content
         ?.filter((b) => b.type === 'text')
@@ -232,20 +233,156 @@ export default function NewPost() {
     }
   };
 
-  const handlePost = () => {
-    // wire up your posting logic here
-    toast.success(`Post sent to ${platform || 'platform'}.`);
+  const handlePostSuccess = () => {
+    toast.success('Post published and saved.');
+    handleDiscard();
   };
 
   return (
-    <div className="np-root">
-      <div className="np-left">
-        <div className="np-header">
-          <div className="np-eyebrow">AI Content Studio</div>
-          <div className="np-title">New Post</div>
+    <>
+      <div className="np-root">
+        <div className="np-left">
+          <div className="np-header">
+            <div className="np-eyebrow">AI Content Studio</div>
+            <div className="np-title">New Post</div>
+          </div>
+
+          <div className="np-panel-inline">
+            <PanelContent
+              topic={topic}
+              model={model}
+              setModel={setModel}
+              platform={platform}
+              setPlatform={setPlatform}
+              output={output}
+            />
+          </div>
+
+          <div className="np-form">
+            <div className="np-field">
+              <label className="np-label" htmlFor="np-topic">Topic</label>
+              <input
+                id="np-topic"
+                className="np-input"
+                type="text"
+                placeholder="e.g. The future of remote work"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+              />
+            </div>
+
+            <div className="np-field">
+              <label className="np-label" htmlFor="np-desc">Description</label>
+              <textarea
+                id="np-desc"
+                className="np-textarea"
+                placeholder="Add context, tone, audience, or key points to include…"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <div className="np-actions">
+              <button
+                className="np-btn-generate"
+                onClick={handleGenerate}
+                disabled={loading || !topic.trim()}
+              >
+                {loading ? <span className="np-btn-generate-spinner" /> : <SparkIcon />}
+                {loading ? 'Generating…' : 'Generate'}
+              </button>
+
+              {isDirty && !loading && (
+                <button className="np-btn-discard" onClick={handleDiscard}>
+                  Discard
+                </button>
+              )}
+            </div>
+
+            {error && <div className="np-error">{error}</div>}
+          </div>
+
+          {(loading || output) && (
+            <div className="np-output">
+              <div className="np-output-header">
+                <span className="np-output-label">Output</span>
+              </div>
+
+              <div className="np-output-body">
+                {/* Image upload */}
+                <div
+                  className={`np-image-upload ${imagePreview ? 'has-image' : ''}`}
+                  onClick={handleImageClick}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="np-image-input"
+                    onChange={handleImageChange}
+                  />
+                  {imagePreview ? (
+                    <>
+                      <Image 
+                      width={100}
+                      height={100}
+                      src={imagePreview} alt="Post" className="np-image-preview" />
+                      <button className="np-image-remove" onClick={handleRemoveImage}>✕</button>
+                    </>
+                  ) : (
+                    <div className="np-image-empty">
+                      <UploadIcon />
+                      <span>Add Image</span>
+                      <span className="np-image-hint">Click to upload</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Generated post */}
+                <div className="np-post-card">
+                  <div className="np-post-card-header">
+                    <span className="np-post-card-label">Post</span>
+                    {!loading && output && (
+                      <button
+                        className={`np-copy-btn ${copied ? 'copied' : ''}`}
+                        onClick={handleCopy}
+                        title="Copy to clipboard"
+                      >
+                        {copied ? <CheckIcon /> : <CopyIcon />}
+                      </button>
+                    )}
+                  </div>
+
+                  {loading ? (
+                    <div className="np-skeleton">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="np-skeleton-line" />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="np-post-card-text">{output}</p>
+                      {output && (
+                        <div className="np-post-actions">
+                          <button
+                            className="np-btn-post"
+                            onClick={() => setPopoverOpen(true)}
+                          >
+                            <SendIcon />
+                            {platform ? `Post to ${platform}` : 'Post'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="np-panel-inline">
+        <aside className="np-panel">
           <PanelContent
             topic={topic}
             model={model}
@@ -254,141 +391,19 @@ export default function NewPost() {
             setPlatform={setPlatform}
             output={output}
           />
-        </div>
-
-        <div className="np-form">
-          <div className="np-field">
-            <label className="np-label" htmlFor="np-topic">Topic</label>
-            <input
-              id="np-topic"
-              className="np-input"
-              type="text"
-              placeholder="e.g. The future of remote work"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-            />
-          </div>
-
-          <div className="np-field">
-            <label className="np-label" htmlFor="np-desc">Description</label>
-            <textarea
-              id="np-desc"
-              className="np-textarea"
-              placeholder="Add context, tone, audience, or key points to include…"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <div className="np-actions">
-            <button
-              className="np-btn-generate"
-              onClick={handleGenerate}
-              disabled={loading || !topic.trim()}
-            >
-              {loading ? <span className="np-btn-generate-spinner" /> : <SparkIcon />}
-              {loading ? 'Generating…' : 'Generate'}
-            </button>
-
-            {isDirty && !loading && (
-              <button className="np-btn-discard" onClick={handleDiscard}>
-                Discard
-              </button>
-            )}
-          </div>
-
-          {error && <div className="np-error">{error}</div>}
-        </div>
-
-        {(loading || output) && (
-          <div className="np-output">
-            <div className="np-output-header">
-              <span className="np-output-label">Output</span>
-            </div>
-
-            <div className="np-output-body">
-
-              {/* Image upload */}
-              <div
-                className={`np-image-upload ${imagePreview ? 'has-image' : ''}`}
-                onClick={handleImageClick}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="np-image-input"
-                  onChange={handleImageChange}
-                />
-                {imagePreview ? (
-                  <>
-                    <img src={imagePreview} alt="Post" className="np-image-preview" />
-                    <button className="np-image-remove" onClick={handleRemoveImage}>✕</button>
-                  </>
-                ) : (
-                  <div className="np-image-empty">
-                    <UploadIcon />
-                    <span>Add Image</span>
-                    <span className="np-image-hint">Click to upload</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Generated post */}
-              <div className="np-post-card">
-                <div className="np-post-card-header">
-                  <span className="np-post-card-label">Post</span>
-                  {!loading && output && (
-                    <button
-                      className={`np-copy-btn ${copied ? 'copied' : ''}`}
-                      onClick={handleCopy}
-                      title="Copy to clipboard"
-                    >
-                      {copied ? <CheckIcon /> : <CopyIcon />}
-                    </button>
-                  )}
-                </div>
-
-                {loading ? (
-                  <div className="np-skeleton">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="np-skeleton-line" />
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    <p className="np-post-card-text">{output}</p>
-                    {output && (
-                      <div className="np-post-actions">
-                        <button
-                          className="np-btn-post"
-                          onClick={handlePost}
-                          disabled={!platform}
-                        >
-                          <SendIcon />
-                          {platform ? `Post to ${platform}` : 'Select a platform'}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        </aside>
       </div>
 
-      <aside className="np-panel">
-        <PanelContent
-          topic={topic}
-          model={model}
-          setModel={setModel}
-          platform={platform}
-          setPlatform={setPlatform}
-          output={output}
-        />
-      </aside>
-    </div>
+      <PostPopover
+        open={popoverOpen}
+        onClose={() => setPopoverOpen(false)}
+        output={output}
+        topic={topic}
+        description={description}
+        imagePreview={imagePreview}
+        defaultPlatform={platform}
+        onSuccess={handlePostSuccess}
+      />
+    </>
   );
 }
