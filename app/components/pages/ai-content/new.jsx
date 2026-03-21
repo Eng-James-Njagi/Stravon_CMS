@@ -1,7 +1,6 @@
 'use client'
 import { useState, useRef } from 'react';
 import './newPost.css';
-import Image from 'next/image'
 import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -61,14 +60,21 @@ const PLATFORMS = [
   { id: 'threads',   label: 'Threads',     icon: faThreads },
 ];
 
-const STEPS = [
+const GEN_STEPS = [
+  { id: 'db',       label: 'Checking past posts' },
+  { id: 'web',      label: 'Searching the web' },
+  { id: 'generate', label: 'Generating your post' },
+  { id: 'done',     label: 'Done' },
+];
+
+const PANEL_STEPS = [
   { id: 'topic',    label: 'Add topic' },
   { id: 'model',    label: 'Choose model' },
   { id: 'platform', label: 'Choose platform' },
   { id: 'generate', label: 'Generate' },
 ];
 
-function getStep(topic, model, platform, output) {
+function getPanelStep(topic, model, platform, output) {
   if (output)   return 3;
   if (platform) return 2;
   if (model)    return 1;
@@ -77,8 +83,8 @@ function getStep(topic, model, platform, output) {
 }
 
 function PanelContent({ topic, model, setModel, platform, setPlatform, output }) {
-  const stepIndex = getStep(topic, model, platform, output);
-  const progress  = Math.round(((stepIndex + (topic ? 1 : 0)) / STEPS.length) * 100);
+  const stepIndex = getPanelStep(topic, model, platform, output);
+  const progress  = Math.round(((stepIndex + (topic ? 1 : 0)) / PANEL_STEPS.length) * 100);
 
   return (
     <>
@@ -123,7 +129,7 @@ function PanelContent({ topic, model, setModel, platform, setPlatform, output })
         <div className="np-panel-label">Progress</div>
         <div className="np-progress-wrap">
           <div className="np-progress-steps">
-            {STEPS.map((s, i) => (
+            {PANEL_STEPS.map((s, i) => (
               <div
                 key={s.id}
                 className={`np-progress-step ${i === stepIndex ? 'active' : i < stepIndex ? 'done' : ''}`}
@@ -156,9 +162,27 @@ export default function NewPost() {
   const [imagePreview, setImagePreview] = useState(null);
   const [copied,       setCopied]       = useState(false);
   const [popoverOpen,  setPopoverOpen]  = useState(false);
+  const [pastPost,     setPastPost]     = useState(null);
+  const [genStep,      setGenStep]      = useState(-1);
+  const [showPast,     setShowPast]     = useState(false);
+  const [fadePast,     setFadePast]     = useState(false);
   const fileInputRef = useRef(null);
+  const stepTimers   = useRef([]);
 
-  const isDirty = topic.trim() !== '' || description.trim() !== '';
+  const isDirty      = topic.trim() !== '' || description.trim() !== '';
+  const isGenerating = loading;
+
+  const startStepSimulation = () => {
+    setGenStep(0);
+    const t1 = setTimeout(() => setGenStep(1), 1500);
+    const t2 = setTimeout(() => setGenStep(2), 3500);
+    stepTimers.current = [t1, t2];
+  };
+
+  const clearStepTimers = () => {
+    stepTimers.current.forEach(clearTimeout);
+    stepTimers.current = [];
+  };
 
   const handleDiscard = () => {
     setTopic('');
@@ -170,6 +194,11 @@ export default function NewPost() {
     setImage(null);
     setImagePreview(null);
     setCopied(false);
+    setPastPost(null);
+    setGenStep(-1);
+    setShowPast(false);
+    setFadePast(false);
+    clearStepTimers();
   };
 
   const handleImageChange = (e) => {
@@ -202,10 +231,16 @@ export default function NewPost() {
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
+
     setLoading(true);
     setError('');
     setOutput('');
     setCopied(false);
+    setPastPost(null);
+    setShowPast(false);
+    setFadePast(false);
+
+    startStepSimulation();
 
     try {
       const response = await fetch('/api/generate-post', {
@@ -217,14 +252,34 @@ export default function NewPost() {
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error?.message || 'Failed to generate post.');
 
+      clearStepTimers();
+      setGenStep(3);
+
       const text = data.content
         ?.filter((b) => b.type === 'text')
         .map((b) => b.text)
         .join('');
 
-      setOutput(text || '');
+      if (data.pastPost) {
+        setPastPost(data.pastPost);
+        setShowPast(true);
+
+        setTimeout(() => {
+          setFadePast(true);
+          setTimeout(() => {
+            setShowPast(false);
+            setFadePast(false);
+            setOutput(text || '');
+          }, 600);
+        }, 2200);
+      } else {
+        setOutput(text || '');
+      }
+
       toast.success('Post generated successfully.');
     } catch (err) {
+      clearStepTimers();
+      setGenStep(-1);
       const message = err.message || 'Something went wrong. Please try again.';
       setError(message);
       toast.error(message);
@@ -287,30 +342,64 @@ export default function NewPost() {
               <button
                 className="np-btn-generate"
                 onClick={handleGenerate}
-                disabled={loading || !topic.trim()}
+                disabled={isGenerating || !topic.trim()}
               >
-                {loading ? <span className="np-btn-generate-spinner" /> : <SparkIcon />}
-                {loading ? 'Generating…' : 'Generate'}
+                {isGenerating ? <span className="np-btn-generate-spinner" /> : <SparkIcon />}
+                {isGenerating
+                  ? genStep >= 0 ? GEN_STEPS[genStep]?.label : 'Starting…'
+                  : 'Generate'}
               </button>
 
-              {isDirty && !loading && (
+              {isDirty && !isGenerating && (
                 <button className="np-btn-discard" onClick={handleDiscard}>
                   Discard
                 </button>
               )}
             </div>
 
+            {/* Generation progress steps */}
+            {isGenerating && genStep >= 0 && (
+              <div className="np-gen-steps">
+                {GEN_STEPS.slice(0, 3).map((s, i) => (
+                  <div
+                    key={s.id}
+                    className={`np-gen-step ${
+                      i === genStep ? 'active' :
+                      i < genStep  ? 'done'   : ''
+                    }`}
+                  >
+                    <div className="np-gen-step-dot">
+                      {i < genStep
+                        ? '✓'
+                        : i === genStep
+                        ? <span className="np-gen-dot-pulse" />
+                        : ''}
+                    </div>
+                    {s.label}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {error && <div className="np-error">{error}</div>}
           </div>
 
-          {(loading || output) && (
+          {/* Past post context card */}
+          {showPast && pastPost && (
+            <div className={`np-context-card ${fadePast ? 'fading' : ''}`}>
+              <div className="np-context-tag">Being used as context</div>
+              <p className="np-context-text">{pastPost.post}</p>
+            </div>
+          )}
+
+          {/* Output */}
+          {(isGenerating || output) && (
             <div className="np-output">
               <div className="np-output-header">
                 <span className="np-output-label">Output</span>
               </div>
 
               <div className="np-output-body">
-                {/* Image upload */}
                 <div
                   className={`np-image-upload ${imagePreview ? 'has-image' : ''}`}
                   onClick={handleImageClick}
@@ -324,10 +413,7 @@ export default function NewPost() {
                   />
                   {imagePreview ? (
                     <>
-                      <Image 
-                      width={100}
-                      height={100}
-                      src={imagePreview} alt="Post" className="np-image-preview" />
+                      <img src={imagePreview} alt="Post" className="np-image-preview" />
                       <button className="np-image-remove" onClick={handleRemoveImage}>✕</button>
                     </>
                   ) : (
@@ -339,11 +425,10 @@ export default function NewPost() {
                   )}
                 </div>
 
-                {/* Generated post */}
                 <div className="np-post-card">
                   <div className="np-post-card-header">
                     <span className="np-post-card-label">Post</span>
-                    {!loading && output && (
+                    {!isGenerating && output && (
                       <button
                         className={`np-copy-btn ${copied ? 'copied' : ''}`}
                         onClick={handleCopy}
@@ -354,7 +439,7 @@ export default function NewPost() {
                     )}
                   </div>
 
-                  {loading ? (
+                  {isGenerating ? (
                     <div className="np-skeleton">
                       {[1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="np-skeleton-line" />
