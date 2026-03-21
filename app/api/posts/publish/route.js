@@ -58,7 +58,7 @@ export async function POST(req) {
 
     // Step 2 — save to MongoDB (no image)
     await getClient();
-    const db = client.db();
+    const db = client.db('stravon_cms');
 
     await db.collection('posts').insertOne({
       topic:       topic ?? '',
