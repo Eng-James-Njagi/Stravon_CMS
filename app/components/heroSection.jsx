@@ -1,11 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from "react";
 import Link from 'next/link'
+import { useKindeBrowserClient, RegisterLink } from "@kinde-oss/kinde-auth-nextjs"
 import '../components/css/heroSection.css'
 
 export default function HeroSection() {
   const [ mouse, setMouse ] = useState({ x: 0.5, y: 0.5 });
   const heroRef = useRef(null);
+  const { isAuthenticated } = useKindeBrowserClient()
 
   useEffect(() => {
     const el = heroRef.current;
@@ -47,7 +49,6 @@ export default function HeroSection() {
             />
           </div>
 
-          {/* Main copy */}
           <div className="hero-content">
             <div className="hero-tag">
               <span className="hero-tag-dot" />
@@ -68,17 +69,20 @@ export default function HeroSection() {
             </p>
 
             <div className="cta-row">
-              <button className="cta-primary">
-                Sign In
-                <span className="cta-primary-arrow">→</span>
-              </button>
+              {!isAuthenticated && (
+                <RegisterLink>
+                  <button className="cta-primary">
+                    Sign Up
+                    <span className="cta-primary-arrow">→</span>
+                  </button>
+                </RegisterLink>
+              )}
               <Link href="/#ai-content">
                 <button className="cta-secondary">Explore Tools</button>
               </Link>
             </div>
           </div>
 
-          {/* Feature pills */}
           <div className="feature-pills">
             {[
               { icon: "⚡", label: "AI Content Creation" },
@@ -94,7 +98,6 @@ export default function HeroSection() {
             ))}
           </div>
 
-          {/* Stats */}
           <div className="stats-strip">
             {[
               { num: "12K+", label: "Teams" },
@@ -108,7 +111,6 @@ export default function HeroSection() {
             ))}
           </div>
 
-          {/* Bottom fade */}
           <div className="hero-bottom-fade" />
 
         </section>
