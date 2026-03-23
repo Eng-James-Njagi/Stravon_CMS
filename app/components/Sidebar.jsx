@@ -1,91 +1,172 @@
 'use client'
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from 'next/image';
-import Link from 'next/link'
-import Posts from './pages/ai-content/posts';
-import NewPost from './pages/ai-content/new';
+import Link from 'next/link';
 import "./css/sidebar.css";
 
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const ListIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-);
-
-export default function Sidebar() {
+export default function Sidebar({
+  navConfig = [],
+  sectionLabel = '',
+  activeView,
+  onViewChange,
+  children,
+}) {
   const [ collapsed, setCollapsed ] = useState(false);
-  const [ activeView, setActiveView ] = useState('posts'); // default view
+  const [ mobileExpanded, setMobileExpanded ] = useState(false);
+  const [ prevView, setPrevView ] = useState(null);
+  const mobileRef = useRef(null); 
 
-  const renderView = () => {
-    switch (activeView) {
-      case 'posts': return <Posts />;
-      case 'new': return <NewPost />;
-      default: return <Posts />;
-    }
-  }
+  const handleViewChange = (id) => {
+    if (id !== activeView) setPrevView(activeView);
+    setMobileExpanded(false);
+    onViewChange?.(id);
+  };
+
+  // close drawer when clicking outside
+  useEffect(() => {
+    if (!mobileExpanded) return;
+
+    const handler = (e) => {
+      if (
+        mobileRef.current &&
+        document.contains(mobileRef.current) &&
+        !mobileRef.current.contains(e.target)
+      ) {
+        setMobileExpanded(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [ mobileExpanded ]);
+
+  const activeTab = navConfig.find((n) => n.id === activeView);
+  const secondTab = prevView
+    ? navConfig.find((n) => n.id === prevView)
+    : navConfig.find((n) => n.id !== activeView);
 
   return (
-    <div className="sb-layout">
-      <aside className={`sb-sidebar ${collapsed ? "collapsed" : ""}`}>
-        {/* Hamburger toggle */}
-        <div className="sb-toggle">
-          <button
-            className="sb-toggle-btn"
-            onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <span className="sb-toggle-bar" />
-            <span className="sb-toggle-bar" />
-            <span className="sb-toggle-bar" />
-          </button>
-        </div>
+    <>
+      {/* Backdrop — mobile only, rendered at root level */}
+      {mobileExpanded && (
+        <div
+          className="sb-backdrop"
+          onClick={() => setMobileExpanded(false)}
+        />
+      )}
 
-        {/* Brand */}
-        <Link  href="/#ai-content">
-          <div className="sb-brand">
-            <div className="sb-brand-badge">
-              <Image src="/logo.jpg" alt="Logo" width={30} height={30} />
-            </div>
-            <span className="sb-brand-name">Stravon<br />Tech Labs</span>
+      <div className="sb-layout">
+
+        {/* ── DESKTOP SIDEBAR ── */}
+        <aside className={`sb-sidebar ${collapsed ? 'collapsed' : ''}`}>
+
+          <div className={`sb-toggle ${collapsed ? 'collapsed' : ''}`}>
+            <button
+              className="sb-toggle-btn"
+              onClick={() => setCollapsed(!collapsed)}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <span className="sb-toggle-bar" />
+              <span className="sb-toggle-bar" />
+              <span className="sb-toggle-bar" />
+            </button>
           </div>
-        </Link>
 
-        <div className="sb-divider" />
-        <div className="sb-section-label">Posts</div>
+          <Link href="/">
+            <div className="sb-brand">
+              <div className="sb-brand-badge">
+                <Image src="/logo.jpg" alt="Logo" width={30} height={30} />
+              </div>
+              <span className="sb-brand-name">Stravon<br />Tech Labs</span>
+            </div>
+          </Link>
 
-        {/* Nav buttons */}
-        <nav className="sb-nav">
-          <button
-            className={`sb-btn sb-btn-primary ${activeView === 'new' ? 'sb-btn-active' : ''}`}
-            onClick={() => setActiveView('new')}
-          >
-            <span className="sb-btn-icon"><PlusIcon /></span>
-            <span className="sb-btn-label">Add Post</span>
-          </button>
+          <div className="sb-divider" />
 
-          <button
-            className={`sb-btn sb-btn-secondary ${activeView === 'posts' ? 'sb-btn-active' : ''}`}
-            onClick={() => setActiveView('posts')}
-          >
-            <span className="sb-btn-icon"><ListIcon /></span>
-            <span className="sb-btn-label">Past Posts</span>
-          </button>
-        </nav>
+          {sectionLabel && (
+            <div className="sb-section-label">{sectionLabel}</div>
+          )}
 
-        <div className="sb-footer">
-          <span className="sb-footer-text">Stravon © 2025</span>
+          <nav className="sb-nav">
+            {navConfig.map((item, index) => (
+              <button
+                key={item.id}
+                data-tooltip={item.tooltip ?? item.label}
+                className={`sb-btn ${index === 0 ? 'sb-btn-primary' : 'sb-btn-secondary'} ${activeView === item.id ? 'sb-btn-active' : ''}`}
+                onClick={() => handleViewChange(item.id)}
+              >
+                <span className="sb-btn-icon">{item.icon}</span>
+                <span className="sb-btn-label">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="sb-footer">
+            <span className="sb-footer-text">Stravon © 2025</span>
+          </div>
+        </aside>
+
+        {/* ── MAIN CONTENT ── */}
+        <main className="sb-main">
+          {children}
+        </main>
+      </div>
+
+      {/* ── MOBILE BOTTOM BAR + DRAWER — outside sb-layout entirely ── */}
+      <div className="sb-mobile-shell" ref={mobileRef}>
+
+        {/* Drawer slides up above the bar */}
+        <div className={`sb-drawer ${mobileExpanded ? 'open' : ''}`}>
+          {sectionLabel && (
+            <div className="sb-drawer-label">{sectionLabel}</div>
+          )}
+          <nav className="sb-drawer-nav">
+            {navConfig.map((item, index) => (
+              <button
+                key={item.id}
+                className={`sb-btn ${index === 0 ? 'sb-btn-primary' : 'sb-btn-secondary'} ${activeView === item.id ? 'sb-btn-active' : ''}`}
+                onClick={() => handleViewChange(item.id)}
+              >
+                <span className="sb-btn-icon">{item.icon}</span>
+                <span className="sb-btn-label">{item.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
-      </aside>
 
-      <main className="sb-main">
-        {renderView()}
-      </main>
-    </div>
+        {/* Fixed bottom bar */}
+        <div className="sb-bar">
+          <button
+            className="sb-bar-hamburger"
+            onClick={() => setMobileExpanded(!mobileExpanded)}
+            aria-label="Toggle navigation"
+          >
+            <span className={`sb-bar-line ${mobileExpanded ? 'open' : ''}`} />
+            <span className={`sb-bar-line mid ${mobileExpanded ? 'open' : ''}`} />
+            <span className={`sb-bar-line ${mobileExpanded ? 'open' : ''}`} />
+          </button>
+
+          {activeTab && (
+            <button
+              className="sb-btn sb-btn-active sb-bar-tab"
+              onClick={() => handleViewChange(activeTab.id)}
+            >
+              <span className="sb-btn-icon">{activeTab.icon}</span>
+              <span className="sb-btn-label">{activeTab.label}</span>
+            </button>
+          )}
+
+          {secondTab && secondTab.id !== activeView && (
+            <button
+              className="sb-btn sb-btn-secondary sb-bar-tab"
+              onClick={() => handleViewChange(secondTab.id)}
+            >
+              <span className="sb-btn-icon">{secondTab.icon}</span>
+              <span className="sb-btn-label">{secondTab.label}</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
